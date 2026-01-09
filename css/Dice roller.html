@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SVG Dice Roller</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+  /* CSS VARIABLES - Store reusable values! */
+  :root {
+    --neon-cyan: #0ff;
+    --bg-dark: #0a0a0a;
+    --die-bg: #fff;
+    --die-dot: #000;
+  }
+
+  body {
+    background: var(--bg-dark);
+    color: #fff;
+    font-family: 'VT323', monospace;
+    margin: 0;
+    padding: 2rem;
+    text-align: center;
+    overflow-x: hidden;
+  }
+
+  /* NEON TEXT EFFECT - Multiple text-shadows create glow */
+  .neon {
+    color: var(--neon-cyan);
+    text-shadow: 
+      0 0 5px var(--neon-cyan), 
+      0 0 10px var(--neon-cyan), 
+      0 0 20px var(--neon-cyan);
+    font-size: 24px;
+  }
+
+  #title {
+    font-size: 48px; 
+    margin-bottom: 2rem;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  /* KEYFRAME ANIMATION - Creates pulsing effect */
+  @keyframes pulse {
+    0%, 100% { 
+      text-shadow: 0 0 5px var(--neon-cyan), 0 0 10px var(--neon-cyan); 
+    }
+    50% { 
+      text-shadow: 0 0 20px var(--neon-cyan), 0 0 30px var(--neon-cyan), 0 0 40px var(--neon-cyan); 
+    }
+  }
+
+  /* FLEXBOX - For button layout */
+  .controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem; /* Space between items */
+    flex-wrap: wrap; /* Wrap on small screens */
+    margin: 2rem 0;
+  }
+
+  button { 
+    background: var(--neon-cyan);
+    border: none; 
+    color: #000;
+    font-family: 'VT323', monospace;
+    font-size: 24px;
+    padding: 1rem 2rem;
+    cursor: pointer;
+    box-shadow: 0 0 10px var(--neon-cyan);
+    /* TRANSITION - Smooth property changes */
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* PSEUDO-CLASS - :hover triggers on mouse over */
+  button:hover { 
+    box-shadow: 0 0 20px var(--neon-cyan), 0 0 30px var(--neon-cyan);
+    transform: scale(1.05); /* Slightly bigger */
+  }
+
+  /* PSEUDO-CLASS - :active triggers on click */
+  button:active {
+    transform: scale(0.95);
+  }
+
+  /* CSS GRID - For laying out dice */
+  #diceContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 2rem;
+    max-width: 800px;
+    margin: 3rem auto;
+    padding: 2rem;
+  }
+
+  /* Individual die styling */
+  .die {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+    /* TRANSFORM for 3D effect */
+    perspective: 1000px;
+  }
+
+  .die-inner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.6s ease;
+  }
+
+  /* Rolling animation */
+  .die.rolling .die-inner {
+    animation: roll 0.6s ease-out;
+  }
+
+  @keyframes roll {
+    0% { transform: rotateX(0deg) rotateY(0deg); }
+    25% { transform: rotateX(180deg) rotateY(180deg); }
+    50% { transform: rotateX(360deg) rotateY(360deg); }
+    75% { transform: rotateX(540deg) rotateY(540deg); }
+    100% { transform: rotateX(720deg) rotateY(720deg); }
+  }
+
+  /* SVG die face styling */
+  .die svg {
+    filter: drop-shadow(0 4px 8px rgba(0, 255, 255, 0.3));
+    transition: filter 0.3s ease;
+  }
+
+  .die:hover svg {
+    filter: drop-shadow(0 6px 12px rgba(0, 255, 255, 0.5));
+  }
+
+  /* History section */
+  #history {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+    background: rgba(0, 255, 255, 0.1);
+    border: 2px solid var(--neon-cyan);
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .history-item {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    background: rgba(0, 255, 255, 0.05);
+    border-left: 3px solid var(--neon-cyan);
+  }
+
+  /* Number input styling */
+  input[type="number"] {
+    background: rgba(0, 255, 255, 0.1);
+    border: 2px solid var(--neon-cyan);
+    color: var(--neon-cyan);
+    font-family: 'VT323', monospace;
+    font-size: 24px;
+    padding: 0.5rem;
+    width: 80px;
+    text-align: center;
+  }
+
+  label {
+    color: var(--neon-cyan);
+    font-size: 20px;
+    margin-right: 0.5rem;
+  }
+</style>
+</head>
+<body>
+  <div id="title" class="neon">🎲 SVG Dice Roller 🎲</div>
+  
+  <div class="controls">
+    <label for="diceCount">Number of Dice:</label>
+    <input type="number" id="diceCount" min="1" max="10" value="2">
+    <button onclick="rollDice()">ROLL DICE</button>
+    <button onclick="clearHistory()">CLEAR HISTORY</button>
+  </div>
+
+  <div id="diceContainer"></div>
+  
+  <div id="history"></div>
+
+  <!-- SVG TEMPLATES - Hidden, used as references -->
+  <svg style="display: none;">
+    <defs>
+      <!-- Die face 1 - Center dot -->
+      <g id="face-1">
+        <rect width="100" height="100" rx="15" fill="white" stroke="#0ff" stroke-width="2"/>
+        <circle cx="50" cy="50" r="8" fill="black"/>
+      </g>
+      
+      <!-- Die face 2 - Diagonal dots -->
+      <g id="face-2">
+        <rect width="100" height="100" rx="15" fill="white" stroke="#0ff" stroke-width="2"/>
+        <circle cx="30" cy="30" r="8" fill="black"/>
+        <circle cx="70" cy="70" r="8" fill="black"/>
+      </g>
+      
+      <!-- Die face 3 - Diagonal with center -->
+      <g id="face-3">
+        <rect width="100" height="100" rx="15" fill="white" stroke="#0ff" stroke-width="2"/>
+        <circle cx="30" cy="30" r="8" fill="black"/>
+        <circle cx="50" cy="50" r="8" fill="black"/>
+        <circle cx="70" cy="70" r="8" fill="black"/>
+      </g>
+      
+      <!-- Die face 4 - Four corners -->
+      <g id="face-4">
+        <rect width="100" height="100" rx="15" fill="white" stroke="#0ff" stroke-width="2"/>
+        <circle cx="30" cy="30" r="8" fill="black"/>
+        <circle cx="70" cy="30" r="8" fill="black"/>
+        <circle cx="30" cy="70" r="8" fill="black"/>
+        <circle cx="70" cy="70" r="8" fill="black"/>
+      </g>
+      
+      <!-- Die face 5 - Four corners + center -->
+      <g id="face-5">
+        <rect width="100" height="100" rx="15" fill="white" stroke="#0ff" stroke-width="2"/>
+        <circle cx="30" cy="30" r="8" fill="black"/>
+        <circle cx="70" cy="30" r="8" fill="black"/>
+        <circle cx="50" cy="50" r="8" fill="black"/>
+        <circle cx="30" cy="70" r="8" fill="black"/>
+        <circle cx="70" cy="70" r="8" fill="black"/>
+      </g>
+      
+      <!-- Die face 6 - Two columns of three -->
+      <g id="face-6">
+        <rect width="100" height="100" rx="15" fill="white" stroke="#0ff" stroke-width="2"/>
+        <circle cx="30" cy="25" r="8" fill="black"/>
+        <circle cx="30" cy="50" r="8" fill="black"/>
+        <circle cx="30" cy="75" r="8" fill="black"/>
+        <circle cx="70" cy="25" r="8" fill="black"/>
+        <circle cx="70" cy="50" r="8" fill="black"/>
+        <circle cx="70" cy="75" r="8" fill="black"/>
+      </g>
+    </defs>
+  </svg>
+
+<script>
+  let history = [];
+
+  function createDie(value) {
+    const die = document.createElement('div');
+    die.className = 'die';
+    
+    const dieInner = document.createElement('div');
+    dieInner.className = 'die-inner';
+    
+    // Create SVG element that uses our template
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '120');
+    svg.setAttribute('height', '120');
+    svg.setAttribute('viewBox', '0 0 100 100');
+    
+    // Use the template face
+    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `#face-${value}`);
+    
+    svg.appendChild(use);
+    dieInner.appendChild(svg);
+    die.appendChild(dieInner);
+    
+    return die;
+  }
+
+  function rollDice() {
+    const count = parseInt(document.getElementById('diceCount').value);
+    const container = document.getElementById('diceContainer');
+    
+    // Clear previous dice
+    container.innerHTML = '';
+    
+    const rolls = [];
+    
+    // Create and roll each die
+    for (let i = 0; i < count; i++) {
+      const value = Math.floor(Math.random() * 6) + 1; // 1-6
+      rolls.push(value);
+      
+      const die = createDie(value);
+      die.classList.add('rolling');
+      
+      container.appendChild(die);
+      
+      // Remove rolling class after animation
+      setTimeout(() => {
+        die.classList.remove('rolling');
+      }, 600);
+    }
+    
+    // Calculate total
+    const total = rolls.reduce((sum, val) => sum + val, 0);
+    
+    // Add to history
+    history.unshift({
+      rolls: rolls,
+      total: total,
+      count: count
+    });
+    
+    if (history.length > 10) history.pop();
+    updateHistory();
+  }
+
+  function updateHistory() {
+    const histDiv = document.getElementById('history');
+    histDiv.innerHTML = history.map((entry, i) => 
+      `<div class="history-item neon">
+        Roll ${i + 1}: ${entry.count}d6 = [${entry.rolls.join(', ')}] = Total: ${entry.total}
+      </div>`
+    ).join('');
+  }
+
+  function clearHistory() {
+    history = [];
+    updateHistory();
+  }
+
+  // Initial roll on page load
+  rollDice();
+</script>  
+</body>
+</html>
